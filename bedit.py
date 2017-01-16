@@ -64,13 +64,19 @@ def bedit_main(scr):
 	k = scr.getkey()
 	while k != 'q':
 		if k == 'KEY_LEFT':
-			cursor_index -= 1
+			if cursor_index > 0:
+				cursor_index -= 1
 		elif k == 'KEY_RIGHT':
-			cursor_index += 1
+			if cursor_index <= len(data) * 2:
+				cursor_index += 1
 		elif k == 'KEY_UP':
 			cursor_index -= width * 2
+			if cursor_index < 0:
+				cursor_index = 0
 		elif k == 'KEY_DOWN':
 			cursor_index += width * 2
+			if cursor_index > len(data) * 2:
+				cursor_index = len(data) * 2
 
 		elif len(k) == 1 and ((k >= '0' and k <= '9') or (k >= 'a' and k <= 'f')):
 			edit_byte(data, cursor_index, k)
