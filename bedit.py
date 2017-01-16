@@ -45,19 +45,22 @@ def rep_data(data, byte_count):
 class bin_editor(object):
 	def __init__(self):
 		self.cursor_index = 0
+		self.window_y_offset = 0
 		self.byte_count = 4
 		self.width = 8
 	def display_byte(self, index):
-		index_y = index / self.width
+		index_y = index / self.width - self.window_y_offset
 		index_x = index % self.width
 		self.screen.addstr(index_y, index_x * (self.byte_count * 2 + 1), rep_data(self.data[index], self.byte_count) + ' ')
 
 	def display_bytes(self):
-		for i in range(0, len(self.data)):
+		offset = self.window_y_offset * self.width
+		for i in range(offset, min(len(self.data), offset + self.max_y * self.width)):
 			self.display_byte(i)
 
 	def display_cursor(self):
 		cursor_y = self.cursor_index / (self.byte_count * 2) / self.width
+		cursor_y -= self.window_y_offset
 		cursor_x = self.cursor_index / (self.byte_count * 2) % self.width
 		cursor_offset = self.cursor_index % (self.byte_count * 2)
 		self.screen.addstr(cursor_y, cursor_x * (self.byte_count * 2 + 1) + cursor_offset, '')
@@ -73,8 +76,15 @@ class bin_editor(object):
 		self.screen.addstr(50, 1, ' ' * 40)
 		self.screen.addstr(50, 1, msg)
 
+
+	def redraw(self):
+		self.screen.clear()
+		self.display_bytes()
+		#self.display_cursor()
+
 	def main(self, screen):
 		self.screen = screen
+		self.max_y, self.max_x = self.screen.getmaxyx()
 		self.screen.clear()
 
 		if len(sys.argv) > 1:
@@ -113,6 +123,15 @@ class bin_editor(object):
 				write_data(filepath, self.data, self.byte_count)
 				self.print_info('wrote file: '+filepath)
 
+
+			cursor_y = self.cursor_index / (self.byte_count * 2) / self.width
+			if cursor_y - self.window_y_offset < 0:
+				self.window_y_offset -= 1
+				self.redraw()
+			if cursor_y - self.window_y_offset >= self.max_y:
+				self.window_y_offset += 1
+				self.redraw()
+			
 			self.display_cursor()
 
 			self.screen.refresh()
