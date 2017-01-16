@@ -164,10 +164,10 @@ class bin_editor(object):
 
 			cursor_y = self.cursor_index / (self.byte_count * 2) / self.width
 			if cursor_y - self.window_y_offset < 0:
-				self.window_y_offset -= 1
+				self.window_y_offset += cursor_y - self.window_y_offset
 				self.redraw()
 			if cursor_y - self.window_y_offset >= self.max_y - 1:
-				self.window_y_offset += 1
+				self.window_y_offset += cursor_y - self.window_y_offset - (self.max_y - 2)
 				self.redraw()
 			
 			self.display_cursor()
