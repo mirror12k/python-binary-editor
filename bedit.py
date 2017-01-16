@@ -62,7 +62,7 @@ class bin_editor(object):
 
 	def display_bytes(self):
 		offset = self.window_y_offset * self.width
-		for i in range(offset, min(len(self.data), offset + self.max_y * self.width)):
+		for i in range(offset, min(len(self.data), offset + (self.max_y - 1) * self.width)):
 			self.display_byte(i)
 
 	def display_cursor(self):
@@ -80,8 +80,8 @@ class bin_editor(object):
 		self.data[data_index] = (int(key, 16) << shift * 4) | (self.data[data_index] ^ (self.data[data_index] & (0xf << shift * 4)))
 
 	def print_info(self, msg):
-		self.screen.addstr(50, 1, ' ' * 40)
-		self.screen.addstr(50, 1, msg)
+		self.screen.addstr(self.max_y - 1, 1, ' ' * 40)
+		self.screen.addstr(self.max_y - 1, 1, msg)
 
 
 	def redraw(self):
@@ -89,15 +89,21 @@ class bin_editor(object):
 		self.display_bytes()
 		#self.display_cursor()
 
+	def store_data(self, filepath):
+		write_data(filepath, self.data, self.byte_count, self.little_endian)
+	
+	def load_data(self, filepath):
+		self.data = read_data(filepath, self.byte_count, self.little_endian)
+
 	def main(self, screen):
 		self.screen = screen
 		self.max_y, self.max_x = self.screen.getmaxyx()
 		self.screen.clear()
 
 		if len(sys.argv) > 1:
-			filepath = sys.argv[1]
-			self.data = read_data(filepath, self.byte_count, self.little_endian)
-			self.print_info('read file: '+filepath)
+			self.filepath = sys.argv[1]
+			self.load_data(self.filepath)
+			self.print_info('read file: '+self.filepath)
 
 
 		self.display_bytes()
@@ -120,6 +126,31 @@ class bin_editor(object):
 				self.cursor_index += self.width * self.byte_count * 2
 				if self.cursor_index > len(self.data) * self.byte_count * 2:
 					self.cursor_index = len(self.data) * self.byte_count * 2
+			elif k == '[':
+				if self.byte_count > 1:
+					self.store_data('.BEDIT_TEMP_FILE')
+					self.byte_count /= 2
+					self.load_data('.BEDIT_TEMP_FILE')
+					self.redraw()
+					self.print_info('byte_count = %d' % self.byte_count)
+				else:
+					self.print_info('already at minimum byte count!')
+			elif k == ']':
+				if self.byte_count < 8:
+					self.store_data('.BEDIT_TEMP_FILE')
+					self.byte_count *= 2
+					self.load_data('.BEDIT_TEMP_FILE')
+					self.redraw()
+					self.print_info('byte_count = %d' % self.byte_count)
+				else:
+					self.print_info('nope')
+
+			elif k == 'p':
+				self.store_data('.BEDIT_TEMP_FILE')
+				self.little_endian = not self.little_endian
+				self.load_data('.BEDIT_TEMP_FILE')
+				self.redraw()
+				self.print_info('little_endian = {}'.format(self.little_endian))
 
 			elif len(k) == 1 and ((k >= '0' and k <= '9') or (k >= 'a' and k <= 'f')):
 				self.edit_byte_piece(self.cursor_index, k)
@@ -127,15 +158,15 @@ class bin_editor(object):
 				self.cursor_index += 1
 
 			elif k == 'w':
-				write_data(filepath, self.data, self.byte_count, self.little_endian)
-				self.print_info('wrote file: '+filepath)
+				self.store_data(self.filepath)
+				self.print_info('wrote file: '+self.filepath)
 
 
 			cursor_y = self.cursor_index / (self.byte_count * 2) / self.width
 			if cursor_y - self.window_y_offset < 0:
 				self.window_y_offset -= 1
 				self.redraw()
-			if cursor_y - self.window_y_offset >= self.max_y:
+			if cursor_y - self.window_y_offset >= self.max_y - 1:
 				self.window_y_offset += 1
 				self.redraw()
 			
