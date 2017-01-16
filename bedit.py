@@ -13,29 +13,35 @@ def write_file(filepath, text):
 	with open(filepath, 'wb') as f:
 		f.write(text)
 
-def read_data(filepath, byte_count):
+def read_data(filepath, byte_count, little_endian=True):
 	text = read_file(filepath)
 
 	data = [ ord(c) for c in text ]
-	data = [ join_bytes(data[n:n+byte_count], byte_count) for n in range(0, len(data), byte_count) ]
+	data = [ join_bytes(data[n:n+byte_count], byte_count, little_endian) for n in range(0, len(data), byte_count) ]
 	return data
 
-def write_data(filepath, data, byte_count):
-	data = sum([ split_bytes(n, byte_count) for n in data ], [])
+def write_data(filepath, data, byte_count, little_endian=True):
+	data = sum([ split_bytes(n, byte_count, little_endian) for n in data ], [])
 	write_file(filepath, ''.join([ chr(c) for c in data ]))
 
 
 
-def join_bytes(data, byte_count):
+def join_bytes(data, byte_count, little_endian=True):
 	while len(data) < byte_count:
 		data.append(0)
-	result = 0
-	for i in range(0, byte_count):
-		result = (result << 8) | data[i]
-	return result
+	if little_endian:
+		return sum([ data[i] << 8 * i for i in range(0, byte_count) ])
+	else:
+		result = 0
+		for i in range(0, byte_count):
+			result = (result << 8) | data[i]
+		return result
 
-def split_bytes(data, byte_count):
-	return [ (data >> i * 8) & 0xff for i in range(byte_count - 1, -1, -1) ]
+def split_bytes(data, byte_count, little_endian=True):
+	if little_endian:
+		return [ (data >> i * 8) & 0xff for i in range(0, byte_count) ]
+	else:
+		return [ (data >> i * 8) & 0xff for i in range(byte_count - 1, -1, -1) ]
 
 
 def rep_data(data, byte_count):
@@ -48,6 +54,7 @@ class bin_editor(object):
 		self.window_y_offset = 0
 		self.byte_count = 4
 		self.width = 8
+		self.little_endian = False
 	def display_byte(self, index):
 		index_y = index / self.width - self.window_y_offset
 		index_x = index % self.width
@@ -89,7 +96,7 @@ class bin_editor(object):
 
 		if len(sys.argv) > 1:
 			filepath = sys.argv[1]
-			self.data = read_data(filepath, self.byte_count)
+			self.data = read_data(filepath, self.byte_count, self.little_endian)
 			self.print_info('read file: '+filepath)
 
 
@@ -120,7 +127,7 @@ class bin_editor(object):
 				self.cursor_index += 1
 
 			elif k == 'w':
-				write_data(filepath, self.data, self.byte_count)
+				write_data(filepath, self.data, self.byte_count, self.little_endian)
 				self.print_info('wrote file: '+filepath)
 
 
