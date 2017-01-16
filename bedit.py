@@ -113,19 +113,24 @@ class bin_editor(object):
 		k = self.screen.getkey()
 		while k != 'q':
 			if k == 'KEY_LEFT':
-				if self.cursor_index > 0:
-					self.cursor_index -= 1
+				self.cursor_index -= 1
 			elif k == 'KEY_RIGHT':
-				if self.cursor_index < len(self.data) * self.byte_count * 2:
-					self.cursor_index += 1
+				self.cursor_index += 1
 			elif k == 'KEY_UP':
 				self.cursor_index -= self.width * self.byte_count * 2
-				if self.cursor_index < 0:
-					self.cursor_index = 0
 			elif k == 'KEY_DOWN':
 				self.cursor_index += self.width * self.byte_count * 2
-				if self.cursor_index > len(self.data) * self.byte_count * 2:
-					self.cursor_index = len(self.data) * self.byte_count * 2
+			elif k == 'KEY_PPAGE':
+				self.cursor_index -= (self.max_y - 1) * self.width * self.byte_count * 2
+				if self.cursor_index < 0:
+					self.window_y_offset = 0
+				else:
+					self.window_y_offset -= self.max_y - 1
+				self.redraw()
+			elif k == 'KEY_NPAGE':
+				self.cursor_index += (self.max_y - 1) * self.width * self.byte_count * 2
+				self.window_y_offset += self.max_y - 1
+				self.redraw()
 			elif k == '[':
 				if self.byte_count > 1:
 					self.store_data('.BEDIT_TEMP_FILE')
@@ -160,8 +165,14 @@ class bin_editor(object):
 			elif k == 'w':
 				self.store_data(self.filepath)
 				self.print_info('wrote file: '+self.filepath)
+			else:
+				self.print_info('unknown command "{}"'.format(k))
 
-
+			if self.cursor_index < 0:
+				self.cursor_index = 0
+			if self.cursor_index > len(self.data) * self.byte_count * 2:
+				self.cursor_index = len(self.data) * self.byte_count * 2
+			
 			cursor_y = self.cursor_index / (self.byte_count * 2) / self.width
 			if cursor_y - self.window_y_offset < 0:
 				self.window_y_offset += cursor_y - self.window_y_offset
