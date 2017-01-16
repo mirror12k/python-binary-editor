@@ -42,83 +42,84 @@ def rep_data(data, byte_count):
 	return ('%0' + str(byte_count * 2) + 'X') % data
 
 
+class bin_editor(object):
+	def __init__(self):
+		self.cursor_index = 0
+		self.byte_count = 4
+		self.width = 8
+	def display_byte(self, index):
+		index_y = index / self.width
+		index_x = index % self.width
+		self.screen.addstr(index_y, index_x * (self.byte_count * 2 + 1), rep_data(self.data[index], self.byte_count) + ' ')
 
-def display_byte(scr, data, index, byte_count, width):
-	index_y = index / width
-	index_x = index % width
-	scr.addstr(index_y, index_x * (byte_count * 2 + 1), rep_data(data[index], byte_count) + ' ')
+	def display_bytes(self):
+		for i in range(0, len(self.data)):
+			self.display_byte(i)
 
-def display_bytes(scr, data, byte_count, width):
-	line = 0
-	for i in range(0, len(data)):
-		display_byte(scr, data, i, byte_count, width)
-
-
-
-def place_cursor(scr, cursor_index, byte_count, width):
-	cursor_y = cursor_index / (byte_count * 2) / width
-	cursor_x = cursor_index / (byte_count * 2) % width
-	cursor_offset = cursor_index % (byte_count * 2)
-	scr.addstr(cursor_y, cursor_x * (byte_count * 2 + 1) + cursor_offset, '')
-
-def edit_byte(data, cursor_index, key, byte_count, scr):
-	shift = (byte_count * 2) - 1 - cursor_index % (byte_count * 2)
-	data_index = cursor_index / (byte_count * 2)
-	scr.addstr(44, 0, 'debug: %d %d' % (shift, data_index))
-	data[data_index] = (int(key, 16) << shift * 4) | (data[data_index] ^ (data[data_index] & (0xf << shift * 4)))
-	#if cursor_index % 2 == 0:
-		#data[cursor_index / 2] = (int(key, 16) << 4) | (data[cursor_index / 2] & 0xf)
-	#else:
-		#data[cursor_index / 2] = int(key, 16) | (data[cursor_index / 2] & 0xf0)
-
-def bedit_main(scr):
-	cursor_index = 0
-	byte_count = 4
-	width = 8
-	scr.clear()
-
-	if len(sys.argv) > 1:
-		filepath = sys.argv[1]
-		data = read_data(filepath, byte_count)
-		scr.addstr(50, 1, 'read file: '+filepath)
+	def display_cursor(self):
+		cursor_y = self.cursor_index / (self.byte_count * 2) / self.width
+		cursor_x = self.cursor_index / (self.byte_count * 2) % self.width
+		cursor_offset = self.cursor_index % (self.byte_count * 2)
+		self.screen.addstr(cursor_y, cursor_x * (self.byte_count * 2 + 1) + cursor_offset, '')
 
 
-	display_bytes(scr, data, byte_count, width)
-	place_cursor(scr, cursor_index, byte_count, width)
-	
-	scr.refresh()
-	k = scr.getkey()
-	while k != 'q':
-		if k == 'KEY_LEFT':
-			if cursor_index > 0:
-				cursor_index -= 1
-		elif k == 'KEY_RIGHT':
-			if cursor_index < len(data) * byte_count * 2:
-				cursor_index += 1
-		elif k == 'KEY_UP':
-			cursor_index -= width * byte_count * 2
-			if cursor_index < 0:
-				cursor_index = 0
-		elif k == 'KEY_DOWN':
-			cursor_index += width * byte_count * 2
-			if cursor_index > len(data) * byte_count * 2:
-				cursor_index = len(data) * byte_count * 2
 
-		elif len(k) == 1 and ((k >= '0' and k <= '9') or (k >= 'a' and k <= 'f')):
-			edit_byte(data, cursor_index, k, byte_count, scr)
-			display_byte(scr, data, cursor_index / (byte_count * 2), byte_count, width)
-			cursor_index += 1
+	def edit_byte_piece(self, index, key):
+		shift = (self.byte_count * 2) - 1 - index % (self.byte_count * 2)
+		data_index = index / (self.byte_count * 2)
+		self.data[data_index] = (int(key, 16) << shift * 4) | (self.data[data_index] ^ (self.data[data_index] & (0xf << shift * 4)))
 
-		elif k == 'w':
-			write_data(filepath, data, byte_count)
-			scr.addstr(50, 1, 'wrote file: '+filepath)
+	def print_info(self, msg):
+		self.screen.addstr(50, 1, ' ' * 40)
+		self.screen.addstr(50, 1, msg)
 
-		place_cursor(scr, cursor_index, byte_count, width)
-		#scr.addstr(0, 0, '')
+	def main(self, screen):
+		self.screen = screen
+		self.screen.clear()
 
-		scr.refresh()
-		k = scr.getkey()
+		if len(sys.argv) > 1:
+			filepath = sys.argv[1]
+			self.data = read_data(filepath, self.byte_count)
+			self.print_info('read file: '+filepath)
 
-curses.wrapper(bedit_main)
+
+		self.display_bytes()
+		self.display_cursor()
+		
+		self.screen.refresh()
+		k = self.screen.getkey()
+		while k != 'q':
+			if k == 'KEY_LEFT':
+				if self.cursor_index > 0:
+					self.cursor_index -= 1
+			elif k == 'KEY_RIGHT':
+				if self.cursor_index < len(self.data) * self.byte_count * 2:
+					self.cursor_index += 1
+			elif k == 'KEY_UP':
+				self.cursor_index -= self.width * self.byte_count * 2
+				if self.cursor_index < 0:
+					self.cursor_index = 0
+			elif k == 'KEY_DOWN':
+				self.cursor_index += self.width * self.byte_count * 2
+				if self.cursor_index > len(self.data) * self.byte_count * 2:
+					self.cursor_index = len(self.data) * self.byte_count * 2
+
+			elif len(k) == 1 and ((k >= '0' and k <= '9') or (k >= 'a' and k <= 'f')):
+				self.edit_byte_piece(self.cursor_index, k)
+				self.display_byte(self.cursor_index / (self.byte_count * 2))
+				self.cursor_index += 1
+
+			elif k == 'w':
+				write_data(filepath, self.data, self.byte_count)
+				self.print_info('wrote file: '+filepath)
+
+			self.display_cursor()
+
+			self.screen.refresh()
+			k = self.screen.getkey()
+
+
+bedit = bin_editor()
+curses.wrapper(bedit.main)
 
 
