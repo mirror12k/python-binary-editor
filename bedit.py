@@ -27,6 +27,8 @@ def write_data(filepath, data, byte_count):
 
 
 def join_bytes(data, byte_count):
+	while len(data) < byte_count:
+		data.append(0)
 	result = 0
 	for i in range(0, byte_count):
 		result = (result << 8) | data[i]
@@ -71,8 +73,8 @@ def edit_byte(data, cursor_index, key, byte_count, scr):
 
 def bedit_main(scr):
 	cursor_index = 0
-	byte_count = 2
-	width = 16
+	byte_count = 4
+	width = 8
 	scr.clear()
 
 	if len(sys.argv) > 1:
@@ -91,7 +93,7 @@ def bedit_main(scr):
 			if cursor_index > 0:
 				cursor_index -= 1
 		elif k == 'KEY_RIGHT':
-			if cursor_index <= len(data) * byte_count * 2:
+			if cursor_index < len(data) * byte_count * 2:
 				cursor_index += 1
 		elif k == 'KEY_UP':
 			cursor_index -= width * byte_count * 2
