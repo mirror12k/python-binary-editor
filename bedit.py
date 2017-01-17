@@ -74,18 +74,22 @@ class bin_editor(object):
 			self.display_byte(i)
 
 	def display_cursor(self):
-		cursor_y = self.cursor_index / (self.byte_count * 2) / self.width
+		cursor_y = self.cursor_index / 2 / self.width
 		cursor_y -= self.window_y_offset
-		cursor_x = self.cursor_index / (self.byte_count * 2) % self.width
-		cursor_offset = self.cursor_index % (self.byte_count * 2)
-		self.screen.addstr(cursor_y, cursor_x * (self.byte_count * 2 + 1) + cursor_offset, '')
+		cursor_x = self.cursor_index / 2 % self.width
+		cursor_x = cursor_x * 2 + cursor_x / self.byte_count
+		cursor_offset = self.cursor_index % 2
+		self.screen.addstr(cursor_y, cursor_x + cursor_offset, '')
 
 
 
 	def edit_byte_piece(self, index, key):
-		shift = (self.byte_count * 2) - 1 - index % (self.byte_count * 2)
-		data_index = index / (self.byte_count * 2)
-		self.data[data_index] = (int(key, 16) << shift * 4) | (self.data[data_index] ^ (self.data[data_index] & (0xf << shift * 4)))
+		shift = index % 2 * 4
+		data_index = index / 2
+		if self.little_endian:
+			offset = self.byte_count - data_index % self.byte_count - 1
+			data_index = offset + data_index / self.byte_count * self.byte_count
+		self.data[data_index] = (int(key, 16) << shift) | (self.data[data_index] ^ (self.data[data_index] & (0xf << shift)))
 
 	def print_info(self, msg):
 		self.screen.addstr(self.max_y - 1, 1, ' ' * 40)
@@ -141,23 +145,17 @@ class bin_editor(object):
 				self.redraw()
 			elif k == ']':
 				if self.byte_count > 1:
-					#self.store_data('.BEDIT_TEMP_FILE')
 					self.byte_count /= 2
-					#self.load_data('.BEDIT_TEMP_FILE')
 					self.redraw()
 				self.print_info('byte_count = %d' % self.byte_count)
 			elif k == '[':
 				if self.byte_count < self.max_byte_count:
-					#self.store_data('.BEDIT_TEMP_FILE')
 					self.byte_count *= 2
-					#self.load_data('.BEDIT_TEMP_FILE')
 					self.redraw()
 				self.print_info('byte_count = %d' % self.byte_count)
 
 			elif k == 'p':
-				#self.store_data('.BEDIT_TEMP_FILE')
 				self.little_endian = not self.little_endian
-				#self.load_data('.BEDIT_TEMP_FILE')
 				self.redraw()
 				self.print_info('little_endian = {}'.format(self.little_endian))
 
