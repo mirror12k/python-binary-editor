@@ -84,7 +84,7 @@ class bin_editor(object):
 
 
 	def edit_byte_piece(self, index, key):
-		shift = index % 2 * 4
+		shift = (1 - index % 2) * 4
 		data_index = index / 2
 		if self.little_endian:
 			offset = self.byte_count - data_index % self.byte_count - 1
@@ -129,18 +129,18 @@ class bin_editor(object):
 			elif k == 'KEY_RIGHT':
 				self.cursor_index += 1
 			elif k == 'KEY_UP':
-				self.cursor_index -= self.width * self.byte_count * 2
+				self.cursor_index -= self.width * 2
 			elif k == 'KEY_DOWN':
-				self.cursor_index += self.width * self.byte_count * 2
+				self.cursor_index += self.width * 2
 			elif k == 'KEY_PPAGE':
-				self.cursor_index -= (self.max_y - 1) * self.width * self.byte_count * 2
+				self.cursor_index -= (self.max_y - 1) * self.width * 2
 				if self.cursor_index < 0:
 					self.window_y_offset = 0
 				else:
 					self.window_y_offset -= self.max_y - 1
 				self.redraw()
 			elif k == 'KEY_NPAGE':
-				self.cursor_index += (self.max_y - 1) * self.width * self.byte_count * 2
+				self.cursor_index += (self.max_y - 1) * self.width * 2
 				self.window_y_offset += self.max_y - 1
 				self.redraw()
 			elif k == ']':
@@ -161,7 +161,11 @@ class bin_editor(object):
 
 			elif len(k) == 1 and ((k >= '0' and k <= '9') or (k >= 'a' and k <= 'f')):
 				self.edit_byte_piece(self.cursor_index, k)
-				self.display_byte(self.cursor_index / (self.byte_count * 2))
+				byte_index = self.cursor_index / 2
+				if self.little_endian:
+					offset = self.byte_count - byte_index % self.byte_count - 1
+					byte_index = byte_index / self.byte_count * self.byte_count + offset
+				self.display_byte(byte_index)
 				self.cursor_index += 1
 
 			elif k == 'w':
@@ -172,10 +176,10 @@ class bin_editor(object):
 
 			if self.cursor_index < 0:
 				self.cursor_index = 0
-			if self.cursor_index > len(self.data) * self.byte_count * 2:
-				self.cursor_index = len(self.data) * self.byte_count * 2
+			if self.cursor_index > len(self.data) * 2:
+				self.cursor_index = len(self.data) * 2
 			
-			cursor_y = self.cursor_index / (self.byte_count * 2) / self.width
+			cursor_y = self.cursor_index / 2 / self.width
 			if cursor_y - self.window_y_offset < 0:
 				self.window_y_offset += cursor_y - self.window_y_offset
 				self.redraw()
