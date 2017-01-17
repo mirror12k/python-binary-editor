@@ -66,12 +66,19 @@ class bin_editor(object):
 			offset_x += (self.byte_count - index_x % self.byte_count - 1) * 2
 		else:
 			offset_x += index_x % self.byte_count * 2
-		self.screen.addstr(index_y, offset_x, rep_data(self.data[index], 1))
+		self.screen.addstr(index_y, offset_x + 10, '%02X' % self.data[index])
 
 	def display_bytes(self):
 		offset = self.window_y_offset * self.width
 		for i in range(offset, min(len(self.data), offset + (self.max_y - 1) * self.width)):
 			self.display_byte(i)
+
+	def display_address(self, address, index_y):
+		self.screen.addstr(index_y, 0, '%08X:' % address)
+
+	def display_addresses(self):
+		for i in range(self.window_y_offset, min(len(self.data) / self.width, self.window_y_offset + self.max_y - 1)):
+			self.display_address(i * self.width, i - self.window_y_offset)
 
 	def display_cursor(self):
 		cursor_y = self.cursor_index / 2 / self.width
@@ -79,7 +86,7 @@ class bin_editor(object):
 		cursor_x = self.cursor_index / 2 % self.width
 		cursor_x = cursor_x * 2 + cursor_x / self.byte_count
 		cursor_offset = self.cursor_index % 2
-		self.screen.addstr(cursor_y, cursor_x + cursor_offset, '')
+		self.screen.addstr(cursor_y, cursor_x + cursor_offset + 10, '')
 
 
 
@@ -98,6 +105,7 @@ class bin_editor(object):
 
 	def redraw(self):
 		self.screen.clear()
+		self.display_addresses()
 		self.display_bytes()
 		#self.display_cursor()
 
@@ -118,7 +126,8 @@ class bin_editor(object):
 			self.print_info('read file: '+self.filepath)
 
 
-		self.display_bytes()
+		self.redraw()
+		#self.display_bytes()
 		self.display_cursor()
 		
 		self.screen.refresh()
