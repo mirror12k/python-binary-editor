@@ -60,8 +60,12 @@ class bin_editor(object):
 	def display_byte(self, index):
 		index_y = index / self.width - self.window_y_offset
 		index_x = index % self.width
-
-		offset_x = index_x * 2 + index_x / self.byte_count
+		
+		offset_x = index_x / self.byte_count * (self.byte_count * 2 + 1)
+		if self.little_endian:
+			offset_x += (self.byte_count - index_x % self.byte_count - 1) * 2
+		else:
+			offset_x += index_x % self.byte_count * 2
 		self.screen.addstr(index_y, offset_x, rep_data(self.data[index], 1))
 
 	def display_bytes(self):
@@ -135,14 +139,14 @@ class bin_editor(object):
 				self.cursor_index += (self.max_y - 1) * self.width * self.byte_count * 2
 				self.window_y_offset += self.max_y - 1
 				self.redraw()
-			elif k == '[':
+			elif k == ']':
 				if self.byte_count > 1:
 					#self.store_data('.BEDIT_TEMP_FILE')
 					self.byte_count /= 2
 					#self.load_data('.BEDIT_TEMP_FILE')
 					self.redraw()
 				self.print_info('byte_count = %d' % self.byte_count)
-			elif k == ']':
+			elif k == '[':
 				if self.byte_count < self.max_byte_count:
 					#self.store_data('.BEDIT_TEMP_FILE')
 					self.byte_count *= 2
@@ -151,9 +155,9 @@ class bin_editor(object):
 				self.print_info('byte_count = %d' % self.byte_count)
 
 			elif k == 'p':
-				self.store_data('.BEDIT_TEMP_FILE')
+				#self.store_data('.BEDIT_TEMP_FILE')
 				self.little_endian = not self.little_endian
-				self.load_data('.BEDIT_TEMP_FILE')
+				#self.load_data('.BEDIT_TEMP_FILE')
 				self.redraw()
 				self.print_info('little_endian = {}'.format(self.little_endian))
 
