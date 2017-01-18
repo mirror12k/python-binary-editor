@@ -59,6 +59,16 @@ class bin_editor(object):
 		self.little_endian = False
 		self.show_guide_lines = True
 
+		self.byte_colors = [ 0 for i in range(256) ]
+		for c in range(0x20, 0x7f):
+			self.byte_colors[c] = 1
+		for c in range(0x80, 0x100):
+			self.byte_colors[c] = 3
+		self.byte_color_mods = [ 0 for i in range(256) ]
+		for c in range(0x20, 0x7f):
+			self.byte_color_mods[c] = curses.A_BOLD
+		#self.byte_color_ranges = [ 0 for _ in range(0, 0x20) ] + [ 1 for _ in range(0x20, 0x7f) ] + [ 0 for _ in range(0x7f, 0x100) ]
+
 	def display_byte(self, index):
 		index_y = index / self.width - self.window_y_offset
 		index_x = index % self.width
@@ -68,7 +78,7 @@ class bin_editor(object):
 			offset_x += (self.byte_count - index_x % self.byte_count - 1) * 2
 		else:
 			offset_x += index_x % self.byte_count * 2
-		self.screen.addstr(index_y, offset_x + 10, '%02X' % self.data[index])
+		self.screen.addstr(index_y, offset_x + 10, '%02X' % self.data[index], self.byte_color_mods[self.data[index]] | curses.color_pair(self.byte_colors[self.data[index]]))
 
 	def display_bytes(self):
 		offset = self.window_y_offset * self.width
@@ -83,7 +93,10 @@ class bin_editor(object):
 				self.screen.addstr(y, offset_x + 9, '|')
 
 	def display_address(self, address, index_y):
-		self.screen.addstr(index_y, 0, '%08X:' % address)
+		if address % 0x100 == 0:	
+			self.screen.addstr(index_y, 0, '%08X:' % address, curses.color_pair(4))
+		else:
+			self.screen.addstr(index_y, 0, '%08X:' % address)
 
 	def display_addresses(self):
 		for i in range(self.window_y_offset, min(len(self.data) / self.width + 1, self.window_y_offset + self.max_y - 1)):
@@ -130,6 +143,10 @@ class bin_editor(object):
 		self.screen = screen
 		self.max_y, self.max_x = self.screen.getmaxyx()
 		self.screen.clear()
+		curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+		curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
+		curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_RED)
+		curses.init_pair(4, curses.COLOR_BLACK, curses.COLOR_WHITE)
 
 		if len(sys.argv) > 1:
 			self.filepath = sys.argv[1]
