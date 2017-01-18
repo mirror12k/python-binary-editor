@@ -57,6 +57,8 @@ class bin_editor(object):
 		self.max_byte_count = 32
 		self.width = 32
 		self.little_endian = False
+		self.show_guide_lines = True
+
 	def display_byte(self, index):
 		index_y = index / self.width - self.window_y_offset
 		index_x = index % self.width
@@ -73,11 +75,18 @@ class bin_editor(object):
 		for i in range(offset, min(len(self.data), offset + (self.max_y - 1) * self.width)):
 			self.display_byte(i)
 
+	def display_guide_lines(self):
+		for y in range(0, min(self.max_y - 1, len(self.data) / self.width - self.window_y_offset + 1)):
+			for byte_offset in range(0, self.width, 4 * self.byte_count):
+				offset_x = byte_offset / self.byte_count * (self.byte_count * 2 + 1)
+				offset_x += byte_offset % self.byte_count * 2
+				self.screen.addstr(y, offset_x + 9, '|')
+
 	def display_address(self, address, index_y):
 		self.screen.addstr(index_y, 0, '%08X:' % address)
 
 	def display_addresses(self):
-		for i in range(self.window_y_offset, min(len(self.data) / self.width, self.window_y_offset + self.max_y - 1)):
+		for i in range(self.window_y_offset, min(len(self.data) / self.width + 1, self.window_y_offset + self.max_y - 1)):
 			self.display_address(i * self.width, i - self.window_y_offset)
 
 	def display_cursor(self):
@@ -106,6 +115,8 @@ class bin_editor(object):
 	def redraw(self):
 		self.screen.clear()
 		self.display_addresses()
+		if self.show_guide_lines:
+			self.display_guide_lines()
 		self.display_bytes()
 		#self.display_cursor()
 
@@ -135,12 +146,16 @@ class bin_editor(object):
 		while k != 'q':
 			if k == 'KEY_LEFT':
 				self.cursor_index -= 1
+				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
 			elif k == 'KEY_RIGHT':
 				self.cursor_index += 1
+				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
 			elif k == 'KEY_UP':
 				self.cursor_index -= self.width * 2
+				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
 			elif k == 'KEY_DOWN':
 				self.cursor_index += self.width * 2
+				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
 			elif k == 'KEY_PPAGE':
 				self.cursor_index -= (self.max_y - 1) * self.width * 2
 				if self.cursor_index < 0:
@@ -148,10 +163,12 @@ class bin_editor(object):
 				else:
 					self.window_y_offset -= self.max_y - 1
 				self.redraw()
+				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
 			elif k == 'KEY_NPAGE':
 				self.cursor_index += (self.max_y - 1) * self.width * 2
 				self.window_y_offset += self.max_y - 1
 				self.redraw()
+				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
 			elif k == ']':
 				if self.byte_count > 1:
 					self.byte_count /= 2
@@ -167,6 +184,11 @@ class bin_editor(object):
 				self.little_endian = not self.little_endian
 				self.redraw()
 				self.print_info('little_endian = {}'.format(self.little_endian))
+			
+			elif k == 'l':
+				self.show_guide_lines = not self.show_guide_lines
+				self.redraw()
+				self.print_info('show_guide_lines = {}'.format(self.show_guide_lines))
 
 			elif len(k) == 1 and ((k >= '0' and k <= '9') or (k >= 'a' and k <= 'f')):
 				self.edit_byte_piece(self.cursor_index, k)
@@ -185,16 +207,20 @@ class bin_editor(object):
 
 			if self.cursor_index < 0:
 				self.cursor_index = 0
+				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
 			if self.cursor_index > len(self.data) * 2:
 				self.cursor_index = len(self.data) * 2
+				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
 			
 			cursor_y = self.cursor_index / 2 / self.width
 			if cursor_y - self.window_y_offset < 0:
 				self.window_y_offset += cursor_y - self.window_y_offset
 				self.redraw()
+				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
 			if cursor_y - self.window_y_offset >= self.max_y - 1:
 				self.window_y_offset += cursor_y - self.window_y_offset - (self.max_y - 2)
 				self.redraw()
+				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
 			
 			self.display_cursor()
 
