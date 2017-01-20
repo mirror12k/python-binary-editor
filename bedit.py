@@ -110,7 +110,23 @@ class bin_editor(object):
 		cursor_offset = self.cursor_index % 2
 		self.screen.addstr(cursor_y, cursor_x + cursor_offset + 10, '')
 
+	def rep_text_byte(self, c):
+		if c >= 0x20 and c < 0x7e:
+			return chr(c)
+		else:
+			return '.'
 
+	def display_text_line(self, index):
+		index_y = index / self.width - self.window_y_offset
+		offset_x = self.width * 2 + self.width / self.byte_count + 10
+
+		text = ''.join([ self.rep_text_byte(self.data[i]) for i in range(index, min(index + self.width, len(self.data))) ])
+		self.screen.addstr(index_y, offset_x, text)
+
+	def display_text(self):
+		offset = self.window_y_offset * self.width
+		for i in range(offset, min(len(self.data), offset + (self.max_y - 1) * self.width), self.width):
+			self.display_text_line(i)
 
 	def edit_byte_piece(self, index, key):
 		shift = (1 - index % 2) * 4
@@ -131,6 +147,7 @@ class bin_editor(object):
 		if self.show_guide_lines:
 			self.display_guide_lines()
 		self.display_bytes()
+		self.display_text()
 		#self.display_cursor()
 
 	def store_data(self, filepath):
@@ -214,6 +231,7 @@ class bin_editor(object):
 					offset = self.byte_count - byte_index % self.byte_count - 1
 					byte_index = byte_index / self.byte_count * self.byte_count + offset
 				self.display_byte(byte_index)
+				self.display_text_line(byte_index / self.width * self.width)
 				self.cursor_index += 1
 
 			elif k == 'w':
