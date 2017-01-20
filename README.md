@@ -10,12 +10,16 @@ Permits in-place editting of bytes or inserting/deleting bytes in insert mode.
  - [0123456789abcdef] - edit the current byte
  - shift + q - quit
  - shift + w - save file to disk
- - [ ] - increase/decrease word size
+ - '[' ']' - increase/decrease word size
  - { } - decrease/increase display width
  - p - toggle little endian
  - i - toggle insert mode
  - l - toggle guide lines
  - backspace - delete previous byte/word
+
+## screenshots
+![screenshot1](screenshots/screenshot1.png)
+![screenshot2](screenshots/screenshot2.png)
 
 ## why?
 Because pulling out ghex/bless all the time is becoming a pain.
