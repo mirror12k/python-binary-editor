@@ -58,6 +58,7 @@ class bin_editor(object):
 		self.width = 64
 		self.little_endian = False
 		self.show_guide_lines = True
+		self.insert_mode = False
 
 		self.byte_colors = [ 0 for i in range(256) ]
 		for c in range(0x20, 0x7f):
@@ -127,6 +128,18 @@ class bin_editor(object):
 		offset = self.window_y_offset * self.width
 		for i in range(offset, min(len(self.data), offset + (self.max_y - 1) * self.width), self.width):
 			self.display_text_line(i)
+
+	def insert_byte(self, index):
+		data_index = index / 2
+		for i in range(0, self.byte_count):
+			self.data.insert(data_index, 0)
+
+	def delete_byte(self, index):
+		data_index = index / 2 / self.byte_count * self.byte_count
+		data_index -= self.byte_count
+		if data_index >= 0:
+			for i in range(0, self.byte_count):
+				del self.data[data_index]
 
 	def edit_byte_piece(self, index, key):
 		shift = (1 - index % 2) * 4
@@ -215,6 +228,7 @@ class bin_editor(object):
 			elif k == ']':
 				if self.byte_count > 1:
 					self.byte_count /= 2
+					self.adjust_width_to_screen()
 					self.redraw()
 				self.print_info('byte_count = %d' % self.byte_count)
 			elif k == '[':
@@ -236,13 +250,27 @@ class bin_editor(object):
 				self.little_endian = not self.little_endian
 				self.redraw()
 				self.print_info('little_endian = {}'.format(self.little_endian))
+			elif k == 'i':
+				self.insert_mode = not self.insert_mode
+				self.print_info('insert_mode = {}'.format(self.insert_mode))
 			
 			elif k == 'l':
 				self.show_guide_lines = not self.show_guide_lines
 				self.redraw()
 				self.print_info('show_guide_lines = {}'.format(self.show_guide_lines))
 
+			elif k == '\x7f':
+				if self.insert_mode:
+					self.delete_byte(self.cursor_index)
+					self.redraw()
+					self.cursor_index -= self.byte_count * 2
+				else:
+					self.print_info('not in insert mode!')
+
 			elif len(k) == 1 and ((k >= '0' and k <= '9') or (k >= 'a' and k <= 'f')):
+				if self.insert_mode and self.cursor_index % (self.byte_count * 2) == 0:
+					self.insert_byte(self.cursor_index)
+					self.redraw()
 				self.edit_byte_piece(self.cursor_index, k)
 				byte_index = self.cursor_index / 2
 				if self.little_endian:
