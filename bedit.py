@@ -55,7 +55,7 @@ class bin_editor(object):
 		self.window_y_offset = 0
 		self.byte_count = 1
 		self.max_byte_count = 32
-		self.width = 32
+		self.width = 64
 		self.little_endian = False
 		self.show_guide_lines = True
 
@@ -140,6 +140,12 @@ class bin_editor(object):
 		self.screen.addstr(self.max_y - 1, 1, ' ' * 40)
 		self.screen.addstr(self.max_y - 1, 1, msg)
 
+	def calculate_display_width(self):
+		return self.width * 2 + self.width / self.byte_count + 10 + self.width
+
+	def adjust_width_to_screen(self):
+		while self.calculate_display_width() > self.max_x:
+			self.width -= 4
 
 	def redraw(self):
 		self.screen.clear()
@@ -159,6 +165,9 @@ class bin_editor(object):
 	def main(self, screen):
 		self.screen = screen
 		self.max_y, self.max_x = self.screen.getmaxyx()
+
+		self.adjust_width_to_screen()
+
 		self.screen.clear()
 		curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
 		curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
@@ -177,7 +186,7 @@ class bin_editor(object):
 		
 		self.screen.refresh()
 		k = self.screen.getkey()
-		while k != 'q':
+		while k != 'Q':
 			if k == 'KEY_LEFT':
 				self.cursor_index -= 1
 				self.print_info('offset %X/%X' % (self.cursor_index / 2, len(self.data)))
@@ -213,7 +222,16 @@ class bin_editor(object):
 					self.byte_count *= 2
 					self.redraw()
 				self.print_info('byte_count = %d' % self.byte_count)
-
+			elif k == '{':
+				if self.width > 4:
+					self.width -= 4
+					self.redraw()
+				self.print_info('width = %d' % self.width)
+			elif k == '}':
+				self.width += 4
+				self.adjust_width_to_screen()
+				self.redraw()
+				self.print_info('width = %d' % self.width)
 			elif k == 'p':
 				self.little_endian = not self.little_endian
 				self.redraw()
@@ -234,7 +252,7 @@ class bin_editor(object):
 				self.display_text_line(byte_index / self.width * self.width)
 				self.cursor_index += 1
 
-			elif k == 'w':
+			elif k == 'W':
 				self.store_data(self.filepath)
 				self.print_info('wrote file: '+self.filepath)
 			else:
